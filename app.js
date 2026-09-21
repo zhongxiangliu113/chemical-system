@@ -35,9 +35,12 @@ async function deleteData(path) { await remove(ref(db, path)); }
 /* ---------------- 数据路径 ---------------- */
 const PATH = {
   reagents: "Reagents",
+  reagentsHeaders: "ReagentsHeaders",
   groups: "Groups",
   discontinued: "Discontinued",
-  history: "History"
+  discontinuedHeaders: "DiscontinuedHeaders",
+  history: "History",
+  historyColCount: "HistoryColCount"
 };
 
 /* ---------------- 页面切换 ---------------- */
@@ -116,15 +119,15 @@ function enableStableRowResize(selector) {
     const resizer = document.createElement("div");
     resizer.className = "row-resizer";
     resizer.style.position = "absolute";
-    resizer.style.left = tr.offsetLeft + "px";
-    resizer.style.width = tr.offsetWidth + "px";
-    resizer.style.top = (tr.offsetTop + tr.offsetHeight - 6) + "px";
+    resizer.style.left = "0";
+    resizer.style.width = "100%";
+    resizer.style.bottom = "0";
     resizer.style.height = "6px";
     resizer.style.cursor = "ns-resize";
     resizer.style.background = "transparent";
     resizer.style.zIndex = "999";
 
-    tbody.appendChild(resizer);
+    tr.appendChild(resizer);
 
     let startY = 0;
     let startHeight = 0;
@@ -142,7 +145,6 @@ function enableStableRowResize(selector) {
       const delta = e.clientY - startY;
       const newHeight = Math.max(24, startHeight + delta);
       tr.style.height = newHeight + "px";
-      resizer.style.top = (tr.offsetTop + newHeight - 6) + "px";
     }
 
     function onUp() {
@@ -337,6 +339,7 @@ async function loadReagents() {
     tbody.appendChild(tr);
   });
 
+  renderColumnManager();
   updateStats();
   enableTableColumnResize("#reagentTable");
   enableStableRowResize("#reagentTable");
@@ -435,8 +438,9 @@ async function deleteColumnByIndex() {
   const data = await readData(PATH.reagents);
   const updates = {};
 
-  Object.keys(data).forEach(id => {
+  Object.keys(data || {}).forEach(id => {
     const tr = document.querySelector(`#reagentTable tbody tr[data-id="${id}"]`);
+    if (!tr) return;
     const tds = tr.children;
 
     const newRow = {};
@@ -462,6 +466,7 @@ function renderColumnManager() {
 
   const ths = document.querySelectorAll("#reagentTable thead th");
   const manager = document.getElementById("columnManager");
+  if (!manager) return;
 
   manager.innerHTML = "";
 
@@ -539,8 +544,10 @@ async function deleteRowById() {
 }
 
 /* ---------------- 搜索 ---------------- */
-const searchInput = document.getElementById("searchBox");
-if (searchInput) {
+function setupSearch() {
+  const searchInput = document.getElementById("searchBox");
+  if (!searchInput) return;
+
   searchInput.oninput = function () {
     const keyword = this.value.trim().toLowerCase();
     const trs = document.querySelectorAll("#reagentTable tbody tr");
@@ -580,7 +587,7 @@ document.addEventListener("paste", function (e) {
 });
 
 /* ---------------- 停产试剂模块 ---------------- */
-const DIS_HEADERS = [
+let DIS_HEADERS = [
   "序号",
   "化学试剂名称",
   "厂商",
@@ -588,10 +595,14 @@ const DIS_HEADERS = [
   "停产日期",
   "备注"
 ];
-
 let currentDisColIndex = null;
 
 async function loadDiscontinued() {
+  const headersFromDb = await readData(PATH.discontinuedHeaders);
+  if (headersFromDb && Array.isArray(headersFromDb)) {
+    DIS_HEADERS = headersFromDb;
+  }
+
   const data = await readData(PATH.discontinued);
   const tbody = document.querySelector("#disTable tbody");
   tbody.innerHTML = "";
@@ -715,12 +726,13 @@ async function addDiscontinuedColumn() {
     const updates = {};
     Object.keys(data).forEach(id => {
       const row = data[id] || {};
-      row[`col${newIndex}`] = "";
+      row[`col${newIndex}`] = row[`col${newIndex}`] ?? "";
       updates[id] = row;
     });
     await updateData(PATH.discontinued, updates);
   }
 
+  await updateData(PATH.discontinuedHeaders, DIS_HEADERS);
   await loadDiscontinued();
 }
 
@@ -755,10 +767,15 @@ function openDisRowMenu(event, id) {
   menu.dataset.id = id;
 }
 
+async function deleteDiscontinued(id) {
+  await deleteData(`${PATH.discontinued}/${id}`);
+  await loadDiscontinued();
+}
+
 function deleteDisRowById() {
   const menu = document.getElementById("disRowMenu");
   const id = menu.dataset.id;
-  deleteDiscontinued(id);
+  if (id) deleteDiscontinued(id);
   menu.style.display = "none";
 }
 
@@ -796,6 +813,7 @@ async function deleteDisColumnByIndex() {
   }
 
   DIS_HEADERS.splice(index, 1);
+  await updateData(PATH.discontinuedHeaders, DIS_HEADERS);
 
   const menu = document.getElementById("disColMenu");
   menu.style.display = "none";
@@ -822,16 +840,45 @@ function getGroupHeaders() {
   return groupColumns.slice();
 }
 
+async function loadGroupHeaders(groupName) {
+  const headers = await readData(`${PATH.groups}/${groupName}/_headers`);
+  if (headers && Array.isArray(headers)) {
+    groupColumns = headers;
+    const headerRow = document.getElementById("projectGroupHeaderRow");
+    headerRow.innerHTML = "";
+    groupColumns.forEach((name, index) => {
+      const th = document.createElement("th");
+      th.textContent = name;
+      if (index === 0) {
+        const span = document.createElement("span");
+        span.className = "col-menu-btn";
+        span.textContent = "▼";
+        span.onclick = (e) => openGroupColumnMenu(e, index);
+        th.appendChild(span);
+      } else {
+        const span = document.createElement("span");
+        span.className = "col-menu-btn";
+        span.textContent = "▼";
+        span.onclick = (e) => openGroupColumnMenu(e, index);
+        th.appendChild(span);
+      }
+      headerRow.appendChild(th);
+    });
+  } else {
+    initGroupColumnsFromHeader();
+    await updateData(`${PATH.groups}/${groupName}/_headers`, groupColumns);
+  }
+}
+
 function openProjectGroup(groupName) {
   currentGroup = groupName;
   const title = document.getElementById("projectGroupTitle");
-  title.textContent = groupName + " 项目组";
+  if (title) title.textContent = groupName + " 项目组";
 
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById("projectGroupTablePage").classList.add("active");
 
-  initGroupColumnsFromHeader();
-  loadGroup(groupName);
+  loadGroupHeaders(groupName).then(() => loadGroup(groupName));
 }
 
 async function loadGroup(groupName) {
@@ -848,6 +895,7 @@ async function loadGroup(groupName) {
   const headers = getGroupHeaders();
 
   Object.keys(data).forEach((id, rowIndex) => {
+    if (id === "_headers") return;
     const row = data[id];
     const tr = document.createElement("tr");
     tr.dataset.id = id;
@@ -857,7 +905,7 @@ async function loadGroup(groupName) {
 
       if (index === 0) {
         td.contentEditable = false;
-        td.textContent = rowIndex + 1;
+        td.textContent = rowIndex;
 
         const spanMenu = document.createElement("span");
         spanMenu.textContent = "▼";
@@ -929,13 +977,17 @@ async function addGroupColumn() {
   if (data) {
     const updates = {};
     Object.keys(data).forEach(id => {
+      if (id === "_headers") return;
       const row = data[id] || {};
-      if (!(name in row)) row[name] = "";
+      if (!(name in row)) {
+        row[name] = "";
+      }
       updates[id] = row;
     });
     await updateData(`${PATH.groups}/${currentGroup}`, updates);
   }
 
+  await updateData(`${PATH.groups}/${currentGroup}/_headers`, groupColumns);
   await loadGroup(currentGroup);
 }
 
@@ -971,6 +1023,7 @@ async function deleteGroupColumn() {
   if (data) {
     const updates = {};
     Object.keys(data).forEach(id => {
+      if (id === "_headers") return;
       const row = data[id];
       const newRow = { ...row };
       delete newRow[headerToDelete];
@@ -978,6 +1031,8 @@ async function deleteGroupColumn() {
     });
     await updateData(`${PATH.groups}/${currentGroup}`, updates);
   }
+
+  await updateData(`${PATH.groups}/${currentGroup}/_headers`, groupColumns);
 
   document.getElementById("groupColMenu").style.display = "none";
   currentGroupColumnIndex = null;
@@ -1013,6 +1068,21 @@ function getHisHeaderCount() {
 }
 
 async function loadHistory() {
+  let colCount = await readData(PATH.historyColCount);
+  if (!colCount || typeof colCount !== "number") {
+    colCount = getHisHeaderCount();
+    await updateData(PATH.historyColCount, colCount);
+  } else {
+    const theadRow = document.getElementById("hisHeaderRow");
+    const currentCount = theadRow.children.length;
+    while (currentCount < colCount) {
+      const th = document.createElement("th");
+      th.innerHTML = `新列 <span class="col-menu-btn">▼</span>`;
+      th.querySelector(".col-menu-btn").onclick = (e) => openHisColumnMenu(e, th);
+      theadRow.appendChild(th);
+    }
+  }
+
   const data = await readData(PATH.history);
   const tbody = document.querySelector("#hisTable tbody");
   tbody.innerHTML = "";
@@ -1023,7 +1093,6 @@ async function loadHistory() {
   }
 
   const ids = Object.keys(data);
-  const colCount = getHisHeaderCount();
 
   ids.forEach((id, index) => {
     const row = data[id];
@@ -1065,9 +1134,10 @@ async function saveHistoryRow(id) {
   const colCount = getHisHeaderCount();
   const rowData = {};
 
- for (let colIndex = 1; colIndex < colCount; colIndex++) {
-  rowData[`col${colIndex}`] = tds[colIndex].textContent.trim();
-}
+  for (let colIndex = 1; colIndex < colCount; colIndex++) {
+    rowData[`col${colIndex}`] = tds[colIndex].textContent.trim();
+  }
+
   await updateData(`${PATH.history}/${id}`, rowData);
 }
 
@@ -1125,7 +1195,7 @@ async function deleteHisColumnByIndex() {
   const data = await readData(PATH.history);
   const updates = {};
 
-  Object.keys(data).forEach(id => {
+  Object.keys(data || {}).forEach(id => {
     const row = data[id];
     const newRow = { ...row };
     delete newRow[`col${index}`];
@@ -1133,6 +1203,9 @@ async function deleteHisColumnByIndex() {
   });
 
   await updateData(PATH.history, updates);
+
+  const newColCount = getHisHeaderCount();
+  await updateData(PATH.historyColCount, newColCount);
 
   document.getElementById("hisColMenu").style.display = "none";
   currentHisColIndex = null;
@@ -1168,20 +1241,31 @@ async function addHistoryColumn() {
     });
   }
 
+  await updateData(PATH.historyColCount, getHisHeaderCount());
   await loadHistory();
 }
 
-/* ---------------- 点击关闭菜单 ---------------- */
+/* ---------------- 全局菜单关闭 ---------------- */
 document.addEventListener("click", function (e) {
-  const colMenu = document.getElementById("hisColMenu");
-  const rowMenu = document.getElementById("hisRowMenu");
+  const menus = [
+    document.getElementById("colMenu"),
+    document.getElementById("rowMenu"),
+    document.getElementById("groupColMenu"),
+    document.getElementById("groupRowMenu"),
+    document.getElementById("disColMenu"),
+    document.getElementById("disRowMenu"),
+    document.getElementById("hisColMenu"),
+    document.getElementById("hisRowMenu")
+  ];
 
-  if (colMenu && !colMenu.contains(e.target) && !e.target.classList.contains("col-menu-btn")) {
-    colMenu.style.display = "none";
-  }
-  if (rowMenu && !rowMenu.contains(e.target) && !e.target.classList.contains("row-menu-btn")) {
-    rowMenu.style.display = "none";
-  }
+  menus.forEach(menu => {
+    if (!menu) return;
+    if (!menu.contains(e.target) &&
+      !e.target.classList.contains("col-menu-btn") &&
+      !e.target.classList.contains("row-menu-btn")) {
+      menu.style.display = "none";
+    }
+  });
 });
 
 /* ---------------- 页面加载 ---------------- */
@@ -1190,6 +1274,7 @@ async function reloadAll() {
   await loadDiscontinued();
   await loadHistory();
   updateStats();
+  setupSearch();
 }
 
 reloadAll();
@@ -1238,4 +1323,3 @@ window.readData = readData;
 window.updateData = updateData;
 window.writeData = writeData;
 window.deleteData = deleteData;
-
