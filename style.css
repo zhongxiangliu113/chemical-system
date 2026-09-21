@@ -1,54 +1,54 @@
-/* 全局布局 */
+/* ---------------- 全局样式 ---------------- */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  padding: 0;
+  font-family: "Microsoft YaHei", sans-serif;
+  background: #f5f5f5;
   display: flex;
   height: 100vh;
-  background: #f5f5f5;
+  overflow: hidden;
 }
 
-/* 左侧导航栏 */
+/* ---------------- 侧边栏 ---------------- */
 #sidebar {
-  width: 220px;
-  background: #222;
-  color: #fff;
-  padding: 16px;
+  width: 240px;
+  background: #2c3e50;
+  color: white;
+  padding: 20px;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 #sidebar h2 {
-  margin: 0 0 12px;
-  font-size: 18px;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 22px;
+  text-align: center;
 }
 
-#sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-#sidebar li {
-  padding: 10px 12px;
+.nav-item {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #34495e;
+  border-radius: 6px;
   cursor: pointer;
-  border-radius: 4px;
-  margin-bottom: 6px;
-  font-size: 14px;
+  transition: background 0.2s;
 }
 
-#sidebar li:hover {
-  background: #444;
+.nav-item:hover {
+  background: #3d566e;
 }
 
-#sidebar li.active {
-  background: #007bff;
+.nav-item.active {
+  background: #1abc9c;
 }
 
-/* 主内容区 */
+/* ---------------- 主体区域 ---------------- */
 #main {
   flex: 1;
-  padding: 16px;
-  box-sizing: border-box;
+  padding: 20px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .page {
@@ -59,202 +59,157 @@ body {
   display: block;
 }
 
-h3 {
-  margin-top: 0;
-  font-size: 20px;
+.page-title {
+  font-size: 26px;
+  margin-bottom: 20px;
 }
 
-/* 统计页面 */
-#stats-container {
-  display: flex;
+.page-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+/* ---------------- 统计卡片 ---------------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
-  margin-top: 20px;
 }
 
-.stat-box {
-  background: #fff;
-  padding: 16px;
-  border-radius: 6px;
-  width: 180px;
-  text-align: center;
-  border: 1px solid #ddd;
+.card {
+  background: #ecf0f1;
+  padding: 20px;
+  border-radius: 10px;
 }
 
-.stat-box h4 {
-  margin: 0 0 10px;
-  font-size: 16px;
+.card.yellow {
+  background: #f9e79f;
 }
 
-.stat-box span {
-  font-size: 24px;
-  font-weight: bold;
-  color: #007bff;
+.card.red {
+  background: #f5b7b1;
 }
 
-/* 工具栏 */
-.toolbar {
-  margin-bottom: 10px;
-  display: flex;
-  gap: 10px;
-}
-
-.toolbar input[type="text"] {
-  padding: 6px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  flex: 1;
-  font-size: 14px;
-}
-
-.toolbar button {
-  padding: 6px 12px;
+/* ---------------- 按钮 ---------------- */
+.btn {
+  padding: 8px 16px;
+  background: #3498db;
+  color: white;
   border: none;
-  background: #007bff;
-  color: #fff;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  margin-right: 10px;
 }
 
-.toolbar button:hover {
-  background: #0056b3;
+.btn:hover {
+  background: #2980b9;
 }
 
-/* 表格 */
+/* ---------------- 表格 ---------------- */
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: white;
 }
 
-th, td {
-  border: 1px solid #ddd;
-  padding: 6px 8px;
-  position: relative;
-  vertical-align: top;
-  font-size: 14px;
+th,
+td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  vertical-align: middle;
 }
 
 th {
-  background: #f0f0f0;
-  user-select: none;
-  white-space: nowrap;
+  background: #f2f2f2;
+  position: relative;
 }
 
-td[contenteditable="true"] {
-  background: #fffbe6;
+td {
+  background: white;
 }
 
-/* 列菜单按钮 / 行菜单按钮 */
-.col-menu-btn,
-.row-menu-btn {
+/* ---------------- 列菜单 ---------------- */
+.col-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 6px;
+  display: none;
+  z-index: 9999;
+}
+
+.col-menu div {
+  padding: 6px 10px;
   cursor: pointer;
-  color: #007bff;
+}
+
+.col-menu div:hover {
+  background: #eee;
+}
+
+.col-menu-btn {
+  cursor: pointer;
   font-size: 12px;
   margin-left: 6px;
 }
 
-/* 行/列菜单 */
-.context-menu {
-  position: absolute;
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 4px;
-  display: none;
-  z-index: 9999;
-  font-size: 12px;
-  border-radius: 4px;
-}
-
-.context-menu button {
-  display: block;
+/* ---------------- 图片预览 ---------------- */
+#imgPreviewOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  text-align: left;
-  padding: 4px 6px;
-  border: none;
-  background: #fff;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+#imgPreview {
+  max-width: 80%;
+  max-height: 80%;
+  border-radius: 10px;
+}
+
+/* ---------------- 项目组 ---------------- */
+.group-container {
+  display: flex;
+  gap: 20px;
+}
+
+.group-box {
+  background: #3498db;
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 12px;
+  flex: 1;
+  text-align: center;
+  transition: background 0.2s;
 }
 
-.context-menu button:hover {
-  background: #eee;
+.group-box:hover {
+  background: #2980b9;
 }
 
-/* 列宽拖拽条 */
+/* ---------------- 列宽拖拽 ---------------- */
 .col-resizer {
   position: absolute;
   right: 0;
   top: 0;
-  width: 4px;
+  width: 6px;
   height: 100%;
   cursor: col-resize;
-  user-select: none;
   background: transparent;
 }
 
-/* 行高拖拽条 */
+/* ---------------- 行高拖拽 ---------------- */
 .row-resizer {
-  position: absolute;
-  left: 0;
-  bottom: 0;
   width: 100%;
-  height: 4px;
-  cursor: row-resize;
-  user-select: none;
+  height: 6px;
+  cursor: ns-resize;
   background: transparent;
-}
-
-/* 上传图片缩略图 */
-img {
-  max-width: 80px;
-  max-height: 80px;
-  border: 1px solid #ccc;
-  margin-top: 4px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-/* 上传按钮 */
-.upload-btn {
-  padding: 4px 8px;
-  background: #28a745;
-  color: #fff;
-  border-radius: 4px;
-  border: none;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.upload-btn:hover {
-  background: #1e7e34;
-}
-
-/* 删除附件按钮 */
-.delete-file-btn {
-  padding: 4px 8px;
-  background: #dc3545;
-  color: #fff;
-  border-radius: 4px;
-  border: none;
-  font-size: 12px;
-  cursor: pointer;
-  margin-left: 6px;
-}
-
-.delete-file-btn:hover {
-  background: #b52a37;
-}
-
-/* 下载链接 */
-.file-link {
-  display: block;
-  margin-top: 4px;
-  font-size: 13px;
-  color: #007bff;
-  text-decoration: none;
-}
-
-.file-link:hover {
-  text-decoration: underline;
 }
