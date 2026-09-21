@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <title>化学试剂管理系统（最终整合版）</title>
 
-  <!-- 样式文件（第 2 段会发送完整 CSS） -->
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -66,15 +65,15 @@
       <table id="reagentTable">
         <thead>
           <tr>
-            <th>序号 <span class="col-menu-btn" onclick="openColumnMenu(event, 0)">▼</span></th>
-            <th>名称 <span class="col-menu-btn" onclick="openColumnMenu(event, 1)">▼</span></th>
-            <th>厂家 <span class="col-menu-btn" onclick="openColumnMenu(event, 2)">▼</span></th>
-            <th>规格 <span class="col-menu-btn" onclick="openColumnMenu(event, 3)">▼</span></th>
-            <th>使用说明 <span class="col-menu-btn" onclick="openColumnMenu(event, 4)">▼</span></th>
-            <th>生产日期 <span class="col-menu-btn" onclick="openColumnMenu(event, 5)">▼</span></th>
-            <th>到期日期 <span class="col-menu-btn" onclick="openColumnMenu(event, 6)">▼</span></th>
-            <th>照片 <span class="col-menu-btn" onclick="openColumnMenu(event, 7)">▼</span></th>
-            <th>备注 <span class="col-menu-btn" onclick="openColumnMenu(event, 8)">▼</span></th>
+            <th><span class="th-text">序号</span><span class="col-menu-btn" onclick="openColumnMenu(event, 0)">▼</span></th>
+            <th><span class="th-text">名称</span><span class="col-menu-btn" onclick="openColumnMenu(event, 1)">▼</span></th>
+            <th><span class="th-text">厂家</span><span class="col-menu-btn" onclick="openColumnMenu(event, 2)">▼</span></th>
+            <th><span class="th-text">规格</span><span class="col-menu-btn" onclick="openColumnMenu(event, 3)">▼</span></th>
+            <th><span class="th-text">使用说明</span><span class="col-menu-btn" onclick="openColumnMenu(event, 4)">▼</span></th>
+            <th><span class="th-text">生产日期</span><span class="col-menu-btn" onclick="openColumnMenu(event, 5)">▼</span></th>
+            <th><span class="th-text">到期日期</span><span class="col-menu-btn" onclick="openColumnMenu(event, 6)">▼</span></th>
+            <th><span class="th-text">照片</span><span class="col-menu-btn" onclick="openColumnMenu(event, 7)">▼</span></th>
+            <th><span class="th-text">备注</span><span class="col-menu-btn" onclick="openColumnMenu(event, 8)">▼</span></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -102,11 +101,11 @@
       <table id="projectGroupTable" style="margin-top:20px;">
         <thead>
           <tr id="projectGroupHeaderRow">
-            <th>序号 <span class="col-menu-btn" onclick="openGroupColumnMenu(event, 0)">▼</span></th>
-            <th>名称 <span class="col-menu-btn" onclick="openGroupColumnMenu(event, 1)">▼</span></th>
-            <th>厂商 <span class="col-menu-btn" onclick="openGroupColumnMenu(event, 2)">▼</span></th>
-            <th>数量 <span class="col-menu-btn" onclick="openGroupColumnMenu(event, 3)">▼</span></th>
-            <th>备注 <span class="col-menu-btn" onclick="openGroupColumnMenu(event, 4)">▼</span></th>
+            <th><span class="th-text">序号</span><span class="col-menu-btn" onclick="openGroupColumnMenu(event, 0)">▼</span></th>
+            <th><span class="th-text">名称</span><span class="col-menu-btn" onclick="openGroupColumnMenu(event, 1)">▼</span></th>
+            <th><span class="th-text">厂商</span><span class="col-menu-btn" onclick="openGroupColumnMenu(event, 2)">▼</span></th>
+            <th><span class="th-text">数量</span><span class="col-menu-btn" onclick="openGroupColumnMenu(event, 3)">▼</span></th>
+            <th><span class="th-text">备注</span><span class="col-menu-btn" onclick="openGroupColumnMenu(event, 4)">▼</span></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -123,7 +122,7 @@
 
     <!-- 4. 停产试剂 -->
     <div id="discontinued" class="page page-card">
-      <h1 class="page-title">停产试剂</hh1>
+      <h1 class="page-title">停产试剂</h1>
 
       <button class="btn" onclick="addDiscontinuedRow()">新增行</button>
       <button class="btn" onclick="addDiscontinuedColumn()">增加列</button>
@@ -131,12 +130,12 @@
       <table id="disTable">
         <thead>
           <tr id="disHeaderRow">
-            <th>序号 <span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
-            <th>化学试剂名称 <span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
-            <th>厂商 <span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
-            <th>evidence <span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
-            <th>停产日期 <span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
-            <th>备注 <span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
+            <th><span class="th-text">序号</span><span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
+            <th><span class="th-text">化学试剂名称</span><span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
+            <th><span class="th-text">厂商</span><span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
+            <th><span class="th-text">evidence</span><span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
+            <th><span class="th-text">停产日期</span><span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
+            <th><span class="th-text">备注</span><span class="col-menu-btn" onclick="openDisColumnMenu(event, this)">▼</span></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -161,10 +160,10 @@
       <table id="hisTable">
         <thead>
           <tr id="hisHeaderRow">
-            <th>序号 <span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
-            <th>变更历史 <span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
-            <th>编辑者 <span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
-            <th>备注 <span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
+            <th><span class="th-text">序号</span><span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
+            <th><span class="th-text">变更历史</span><span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
+            <th><span class="th-text">编辑者</span><span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
+            <th><span class="th-text">备注</span><span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -186,7 +185,6 @@
     <img id="imgPreview" />
   </div>
 
-  <!-- JS 文件（第 3 段会发送完整 JS） -->
   <script type="module" src="app.js"></script>
 
 </body>

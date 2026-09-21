@@ -247,10 +247,9 @@ async function updateStats() {
   });
 }
 
-/* ---------------- 试剂管理 ---------------- */
+/* ---------------- 化学试剂表格 ---------------- */
 let currentRowId = null;
 let currentColumnIndex = null;
-let columnManagerRendered = false;
 
 async function loadReagents() {
   const data = await readData(PATH.reagents);
@@ -261,7 +260,6 @@ async function loadReagents() {
   const headers = Array.from(ths).map((_, index) => `col${index}`);
 
   if (!data) {
-    renderColumnManager();
     updateStats();
     enableTableColumnResize("#reagentTable");
     enableStableRowResize("#reagentTable");
@@ -339,7 +337,6 @@ async function loadReagents() {
     tbody.appendChild(tr);
   });
 
-  renderColumnManager();
   updateStats();
   enableTableColumnResize("#reagentTable");
   enableStableRowResize("#reagentTable");
@@ -405,15 +402,8 @@ function deletePhoto(btn) {
   updateData(`${PATH.reagents}/${id}`, { col7: "", filename: "" });
 }
 
-function openColumnMenu(event, arg) {
-  const headerRow = document.querySelector("#reagentTable thead tr");
-
-  if (typeof arg === "number") {
-    currentColumnIndex = arg;
-  } else {
-    const thElem = arg.closest("th");
-    currentColumnIndex = Array.from(headerRow.children).indexOf(thElem);
-  }
+function openColumnMenu(event, index) {
+  currentColumnIndex = index;
 
   const menu = document.getElementById("colMenu");
   menu.style.display = "block";
@@ -458,73 +448,6 @@ async function deleteColumnByIndex() {
   currentColumnIndex = null;
 
   await loadReagents();
-}
-
-function renderColumnManager() {
-  if (columnManagerRendered) return;
-  columnManagerRendered = true;
-
-  const ths = document.querySelectorAll("#reagentTable thead th");
-  const manager = document.getElementById("columnManager");
-  if (!manager) return;
-
-  manager.innerHTML = "";
-
-  ths.forEach((th, index) => {
-    const label = document.createElement("label");
-    label.style.marginRight = "10px";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = true;
-    checkbox.onchange = () => toggleColumn(index, checkbox.checked);
-
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(th.textContent.trim()));
-    manager.appendChild(label);
-  });
-}
-
-function toggleColumn(index, show) {
-  const ths = document.querySelectorAll("#reagentTable thead th");
-  const trs = document.querySelectorAll("#reagentTable tbody tr");
-
-  if (ths[index]) ths[index].style.display = show ? "" : "none";
-  trs.forEach(tr => {
-    if (tr.children[index]) tr.children[index].style.display = show ? "" : "none";
-  });
-}
-
-async function addColumn(tableId) {
-  const table = document.getElementById(tableId);
-  const colName = prompt("请输入新列名称：");
-  if (!colName) return;
-
-  const theadRow = table.querySelector("thead tr");
-  const colIndex = theadRow.children.length;
-
-  const th = document.createElement("th");
-  th.innerHTML = `${colName} <span class="col-menu-btn">▼</span>`;
-  th.querySelector(".col-menu-btn").onclick = (e) => openColumnMenu(e, th);
-  theadRow.appendChild(th);
-
-  const tbodyRows = table.querySelectorAll("tbody tr");
-  for (let tr of tbodyRows) {
-    const id = tr.dataset.id;
-
-    const td = document.createElement("td");
-    td.contentEditable = true;
-    td.textContent = "";
-    td.oninput = () => saveReagentRow(id);
-    tr.appendChild(td);
-
-    await updateData(`${PATH.reagents}/${id}`, {
-      [`col${colIndex}`]: ""
-    });
-  }
-
-  enableTableColumnResize("#reagentTable");
-  enableStableRowResize("#reagentTable");
 }
 
 function openRowMenu(event, rowId) {
@@ -708,15 +631,14 @@ async function addDiscontinuedRow() {
 }
 
 async function addDiscontinuedColumn() {
-  const headerRow = document.querySelector("#disHeaderRow");
+  const headerRow = document.getElementById("disHeaderRow");
   const name = prompt("请输入新列名称：", "新列");
   if (!name) return;
 
   DIS_HEADERS.push(name);
 
   const th = document.createElement("th");
-  th.innerHTML = `${name} <span class="col-menu-btn">▼</span>`;
-  th.querySelector(".col-menu-btn").onclick = (e) => openDisColumnMenu(e, th);
+  th.innerHTML = `<span class="th-text">${name}</span><span class="col-menu-btn" onclick="openDisColumnMenu(event, this.parentElement)">▼</span>`;
   headerRow.appendChild(th);
 
   const newIndex = DIS_HEADERS.length - 1;
@@ -767,16 +689,12 @@ function openDisRowMenu(event, id) {
   menu.dataset.id = id;
 }
 
-async function deleteDiscontinued(id) {
-  await deleteData(`${PATH.discontinued}/${id}`);
-  await loadDiscontinued();
-}
-
 function deleteDisRowById() {
   const menu = document.getElementById("disRowMenu");
   const id = menu.dataset.id;
-  if (id) deleteDiscontinued(id);
+  deleteData(`${PATH.discontinued}/${id}`);
   menu.style.display = "none";
+  loadDiscontinued();
 }
 
 function openDisColumnMenu(event, thElem) {
@@ -828,52 +746,34 @@ let groupColumns = ["序号", "名称", "厂商", "数量", "备注"];
 let currentGroupColumnIndex = null;
 let currentGroupRowId = null;
 
-function initGroupColumnsFromHeader() {
-  const ths = document.querySelectorAll("#projectGroupHeaderRow th");
-  groupColumns = Array.from(ths).map(th => {
-    const firstTextNode = Array.from(th.childNodes).find(n => n.nodeType === 3);
-    return firstTextNode ? firstTextNode.textContent.trim() : "";
-  });
-}
-
-function getGroupHeaders() {
-  return groupColumns.slice();
-}
-
+/* 读取项目组列结构（与 index.html 表头完全同步） */
 async function loadGroupHeaders(groupName) {
   const headers = await readData(`${PATH.groups}/${groupName}/_headers`);
+  const headerRow = document.getElementById("projectGroupHeaderRow");
+
   if (headers && Array.isArray(headers)) {
     groupColumns = headers;
-    const headerRow = document.getElementById("projectGroupHeaderRow");
     headerRow.innerHTML = "";
+
     groupColumns.forEach((name, index) => {
       const th = document.createElement("th");
-      th.textContent = name;
-      if (index === 0) {
-        const span = document.createElement("span");
-        span.className = "col-menu-btn";
-        span.textContent = "▼";
-        span.onclick = (e) => openGroupColumnMenu(e, index);
-        th.appendChild(span);
-      } else {
-        const span = document.createElement("span");
-        span.className = "col-menu-btn";
-        span.textContent = "▼";
-        span.onclick = (e) => openGroupColumnMenu(e, index);
-        th.appendChild(span);
-      }
+      th.innerHTML =
+        `<span class="th-text">${name}</span>` +
+        `<span class="col-menu-btn" onclick="openGroupColumnMenu(event, ${index})">▼</span>`;
       headerRow.appendChild(th);
     });
   } else {
-    initGroupColumnsFromHeader();
+    // 第一次使用默认表头
     await updateData(`${PATH.groups}/${groupName}/_headers`, groupColumns);
   }
 }
 
+/* 打开项目组页面 */
 function openProjectGroup(groupName) {
   currentGroup = groupName;
+
   const title = document.getElementById("projectGroupTitle");
-  if (title) title.textContent = groupName + " 项目组";
+  title.textContent = `${groupName} 项目组`;
 
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById("projectGroupTablePage").classList.add("active");
@@ -881,6 +781,7 @@ function openProjectGroup(groupName) {
   loadGroupHeaders(groupName).then(() => loadGroup(groupName));
 }
 
+/* 加载项目组表格 */
 async function loadGroup(groupName) {
   const data = await readData(`${PATH.groups}/${groupName}`);
   const tbody = document.querySelector("#projectGroupTable tbody");
@@ -892,10 +793,11 @@ async function loadGroup(groupName) {
     return;
   }
 
-  const headers = getGroupHeaders();
+  const headers = groupColumns;
 
   Object.keys(data).forEach((id, rowIndex) => {
     if (id === "_headers") return;
+
     const row = data[id];
     const tr = document.createElement("tr");
     tr.dataset.id = id;
@@ -929,27 +831,29 @@ async function loadGroup(groupName) {
   enableStableRowResize("#projectGroupTable");
 }
 
+/* 保存项目组行 */
 async function saveGroupRow(groupName, id) {
   const tr = document.querySelector(`#projectGroupTable tbody tr[data-id="${id}"]`);
-  const headers = getGroupHeaders();
   const tds = tr.querySelectorAll("td");
-  const rowData = {};
+  const headers = groupColumns;
 
+  const rowData = {};
   tds.forEach((td, index) => {
     if (index === 0) return;
-    rowData[headers[index]] = td.textContent.trim() || "";
+    rowData[headers[index]] = td.textContent.trim();
   });
 
   await updateData(`${PATH.groups}/${groupName}/${id}`, rowData);
 }
 
+/* 新增项目组行 */
 async function addGroupRow() {
   if (!currentGroup) return;
 
   const id = "id" + Date.now();
-  const headers = getGroupHeaders();
-  const rowData = {};
+  const headers = groupColumns;
 
+  const rowData = {};
   headers.forEach(header => {
     if (header !== "序号") rowData[header] = "";
   });
@@ -958,19 +862,20 @@ async function addGroupRow() {
   await loadGroup(currentGroup);
 }
 
+/* 新增项目组列 */
 async function addGroupColumn() {
   if (!currentGroup) return;
-
-  const headerRow = document.getElementById("projectGroupHeaderRow");
-  const newIndex = groupColumns.length;
 
   const name = prompt("请输入新列名称：", "新列");
   if (!name) return;
 
   groupColumns.push(name);
 
+  const headerRow = document.getElementById("projectGroupHeaderRow");
   const th = document.createElement("th");
-  th.innerHTML = `${name} <span class="col-menu-btn" onclick="openGroupColumnMenu(event, ${newIndex})">▼</span>`;
+  th.innerHTML =
+    `<span class="th-text">${name}</span>` +
+    `<span class="col-menu-btn" onclick="openGroupColumnMenu(event, ${groupColumns.length - 1})">▼</span>`;
   headerRow.appendChild(th);
 
   const data = await readData(`${PATH.groups}/${currentGroup}`);
@@ -979,9 +884,7 @@ async function addGroupColumn() {
     Object.keys(data).forEach(id => {
       if (id === "_headers") return;
       const row = data[id] || {};
-      if (!(name in row)) {
-        row[name] = "";
-      }
+      row[name] = row[name] ?? "";
       updates[id] = row;
     });
     await updateData(`${PATH.groups}/${currentGroup}`, updates);
@@ -991,11 +894,10 @@ async function addGroupColumn() {
   await loadGroup(currentGroup);
 }
 
+/* 打开项目组列菜单 */
 function openGroupColumnMenu(event, index) {
   event.stopPropagation();
-  const th = event.target.closest("th");
-  const ths = document.querySelectorAll("#projectGroupHeaderRow th");
-  currentGroupColumnIndex = Array.from(ths).indexOf(th);
+  currentGroupColumnIndex = index;
 
   const menu = document.getElementById("groupColMenu");
   menu.style.display = "block";
@@ -1003,11 +905,11 @@ function openGroupColumnMenu(event, index) {
   menu.style.top = event.pageY + "px";
 }
 
+/* 删除项目组列 */
 async function deleteGroupColumn() {
   if (currentGroupColumnIndex == null) return;
 
-  const headers = getGroupHeaders();
-  const headerToDelete = headers[currentGroupColumnIndex];
+  const headerToDelete = groupColumns[currentGroupColumnIndex];
   if (!headerToDelete) return;
 
   const table = document.getElementById("projectGroupTable");
@@ -1039,6 +941,7 @@ async function deleteGroupColumn() {
   await loadGroup(currentGroup);
 }
 
+/* 打开项目组行菜单 */
 function openGroupRowMenu(event, id) {
   event.stopPropagation();
   currentGroupRowId = id;
@@ -1049,6 +952,7 @@ function openGroupRowMenu(event, id) {
   menu.style.top = event.pageY + "px";
 }
 
+/* 删除项目组行 */
 async function deleteGroupRowByMenu() {
   if (!currentGroupRowId || !currentGroup) return;
 
@@ -1063,14 +967,16 @@ async function deleteGroupRowByMenu() {
 let currentHisColIndex = null;
 let currentHisRowId = null;
 
+/* 获取表头列数 */
 function getHisHeaderCount() {
   return document.querySelector("#hisHeaderRow").children.length;
 }
 
+/* 加载变更历史表格 */
 async function loadHistory() {
   let colCount = await readData(PATH.historyColCount);
 
-  // 如果数据库没有列数量，则用当前表头数量并写入数据库
+  // 如果数据库没有列数量，则使用当前表头数量并写入
   if (!colCount || typeof colCount !== "number") {
     colCount = getHisHeaderCount();
     await updateData(PATH.historyColCount, colCount);
@@ -1080,8 +986,9 @@ async function loadHistory() {
   const theadRow = document.getElementById("hisHeaderRow");
   while (theadRow.children.length < colCount) {
     const th = document.createElement("th");
-    th.innerHTML = `新列 <span class="col-menu-btn">▼</span>`;
-    th.querySelector(".col-menu-btn").onclick = (e) => openHisColumnMenu(e, th);
+    th.innerHTML =
+      `<span class="th-text">新列</span>` +
+      `<span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span>`;
     theadRow.appendChild(th);
   }
 
@@ -1130,6 +1037,7 @@ async function loadHistory() {
   enableStableRowResize("#hisTable");
 }
 
+/* 保存变更历史行 */
 async function saveHistoryRow(id) {
   const tr = document.querySelector(`#hisTable tbody tr[data-id="${id}"]`);
   const tds = tr.children;
@@ -1143,6 +1051,7 @@ async function saveHistoryRow(id) {
   await updateData(`${PATH.history}/${id}`, rowData);
 }
 
+/* 新增变更历史行 */
 async function addHistoryRow() {
   const id = Date.now();
   const colCount = await readData(PATH.historyColCount);
@@ -1156,6 +1065,7 @@ async function addHistoryRow() {
   await loadHistory();
 }
 
+/* 打开行菜单 */
 function openHisRowMenu(event, id) {
   event.stopPropagation();
   currentHisRowId = id;
@@ -1166,6 +1076,7 @@ function openHisRowMenu(event, id) {
   menu.style.top = event.pageY + "px";
 }
 
+/* 删除变更历史行 */
 async function deleteHisRowById() {
   await deleteData(`${PATH.history}/${currentHisRowId}`);
   currentHisRowId = null;
@@ -1173,6 +1084,7 @@ async function deleteHisRowById() {
   await loadHistory();
 }
 
+/* 打开列菜单 */
 function openHisColumnMenu(event, thElem) {
   event.stopPropagation();
   const theadRow = document.querySelector("#hisHeaderRow");
@@ -1184,6 +1096,7 @@ function openHisColumnMenu(event, thElem) {
   menu.style.top = event.pageY + "px";
 }
 
+/* 删除变更历史列 */
 async function deleteHisColumnByIndex() {
   const index = currentHisColIndex;
   if (index == null || index === 0) return;
@@ -1214,14 +1127,17 @@ async function deleteHisColumnByIndex() {
 
   await loadHistory();
 }
+
+/* 新增变更历史列 */
 async function addHistoryColumn() {
   const theadRow = document.getElementById("hisHeaderRow");
   const colName = prompt("请输入新列名称：");
   if (!colName) return;
 
   const th = document.createElement("th");
-  th.innerHTML = `${colName} <span class="col-menu-btn">▼</span>`;
-  th.querySelector(".col-menu-btn").onclick = (e) => openHisColumnMenu(e, th);
+  th.innerHTML =
+    `<span class="th-text">${colName}</span>` +
+    `<span class="col-menu-btn" onclick="openHisColumnMenu(event, this.parentElement)">▼</span>`;
   theadRow.appendChild(th);
 
   const colIndex = getHisHeaderCount() - 1;
@@ -1241,12 +1157,9 @@ async function addHistoryColumn() {
     });
   }
 
-  // ⭐ 关键：写入数据库，让所有用户同步列数量
   await updateData(PATH.historyColCount, getHisHeaderCount());
-
   await loadHistory();
 }
-
 
 /* ---------------- 全局菜单关闭 ---------------- */
 document.addEventListener("click", function (e) {
@@ -1263,9 +1176,11 @@ document.addEventListener("click", function (e) {
 
   menus.forEach(menu => {
     if (!menu) return;
-    if (!menu.contains(e.target) &&
+    if (
+      !menu.contains(e.target) &&
       !e.target.classList.contains("col-menu-btn") &&
-      !e.target.classList.contains("row-menu-btn")) {
+      !e.target.classList.contains("row-menu-btn")
+    ) {
       menu.style.display = "none";
     }
   });
@@ -1276,15 +1191,16 @@ async function reloadAll() {
   await loadReagents();
   await loadDiscontinued();
   await loadHistory();
-  updateStats();
   setupSearch();
+  updateStats();
 }
 
 reloadAll();
 
-/* ---------------- 暴露到 window ---------------- */
+/* ---------------- 暴露函数到 window（供 HTML 调用） ---------------- */
 window.showPage = showPage;
 
+/* 化学试剂 */
 window.addReagentRow = addReagentRow;
 window.addColumn = addColumn;
 window.openColumnMenu = openColumnMenu;
@@ -1292,6 +1208,7 @@ window.deleteColumnByIndex = deleteColumnByIndex;
 window.openRowMenu = openRowMenu;
 window.deleteRowById = deleteRowById;
 
+/* 项目组 */
 window.openProjectGroup = openProjectGroup;
 window.loadGroup = loadGroup;
 window.saveGroupRow = saveGroupRow;
@@ -1302,6 +1219,7 @@ window.openGroupColumnMenu = openGroupColumnMenu;
 window.deleteGroupRowByMenu = deleteGroupRowByMenu;
 window.deleteGroupColumn = deleteGroupColumn;
 
+/* 停产试剂 */
 window.addDiscontinuedRow = addDiscontinuedRow;
 window.addDiscontinuedColumn = addDiscontinuedColumn;
 window.deleteDiscontinued = deleteDiscontinued;
@@ -1310,6 +1228,7 @@ window.deleteDisRowById = deleteDisRowById;
 window.openDisColumnMenu = openDisColumnMenu;
 window.deleteDisColumnByIndex = deleteDisColumnByIndex;
 
+/* 变更历史 */
 window.loadHistory = loadHistory;
 window.addHistoryRow = addHistoryRow;
 window.addHistoryColumn = addHistoryColumn;
@@ -1318,11 +1237,14 @@ window.deleteHisColumnByIndex = deleteHisColumnByIndex;
 window.openHisRowMenu = openHisRowMenu;
 window.deleteHisRowById = deleteHisRowById;
 
+/* 拖拽功能 */
 window.enableStableRowResize = enableStableRowResize;
 window.enableTableColumnResize = enableTableColumnResize;
 
+/* Firebase 基础函数（可用于调试） */
 window.PATH = PATH;
 window.readData = readData;
 window.updateData = updateData;
 window.writeData = writeData;
 window.deleteData = deleteData;
+
