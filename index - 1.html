@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>化学试剂管理系统（最终整合版）</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 240px;
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    #sidebar h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 22px;
+      text-align: center;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: #34495e;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .nav-item:hover {
+      background: #3d566e;
+    }
+
+    .nav-item.active {
+      background: #1abc9c;
+    }
+
+    #main {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .page-title {
+      font-size: 26px;
+      margin-bottom: 20px;
+    }
+
+    .page-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #ecf0f1;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .card.yellow {
+      background: #f9e79f;
+    }
+
+    .card.red {
+      background: #f5b7b1;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .btn:hover {
+      background: #2980b9;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f2f2f2;
+      position: relative;
+    }
+
+    td {
+      background: white;
+    }
+
+    .col-menu {
+      display: none;
+      /* 已删除列菜单功能 */
+    }
+
+    .col-menu-btn {
+      display: none;
+      /* 已删除列菜单按钮 */
+    }
+
+    #imgPreviewOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 99999;
+    }
+
+    #imgPreview {
+      max-width: 80%;
+      max-height: 80%;
+      border-radius: 10px;
+    }
+
+    .group-container {
+      display: flex;
+      gap: 20px;
+    }
+
+    .group-box {
+      background: #3498db;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+      transition: background 0.2s;
+    }
+
+    .group-box:hover {
+      background: #2980b9;
+    }
+
+    .col-resizer {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      background: transparent;
+    }
+
+    .row-resizer {
+      width: 100%;
+      height: 6px;
+      cursor: ns-resize;
+      background: transparent;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebar">
+    <h2>试剂管理系统</h2>
+    <div class="nav-item active" onclick="showPage('stat', this)">化学试剂统计</div>
+    <div class="nav-item" onclick="showPage('table', this)">化学试剂表格</div>
+    <div class="nav-item" onclick="showPage('group', this)">项目组管理</div>
+    <div class="nav-item" onclick="showPage('discontinued', this)">停产试剂</div>
+    <div class="nav-item" onclick="showPage('history', this)">变更历史</div>
+  </div>
+
+  <div id="main">
+
+    <!-- 1. 化学试剂统计 -->
+    <div id="stat" class="page page-card active">
+      <h1 class="page-title">化学试剂统计</h1>
+      <div class="grid">
+        <div class="card">
+          <h2>总试剂数量</h2>
+          <p id="totalCount">0</p>
+        </div>
+        <div class="card yellow">
+          <h2>即将过期试剂（3个月内）</h2>
+          <p id="nearExpireCount">0</p>
+          <ul id="nearExpireList"></ul>
+        </div>
+        <div class="card red">
+          <h2>已过期试剂</h2>
+          <p id="expiredCount">0</p>
+          <ul id="expiredList"></ul>
+        </div>
+        <div class="card">
+          <h2>预留扩展</h2>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 化学试剂表格 -->
+    <div id="table" class="page page-card">
+      <h1 class="page-title">化学试剂表格</h1>
+
+      <button class="btn" onclick="addReagentRow()">新增行</button>
+
+      <input id="searchBox" placeholder="搜索..." style="margin-bottom:8px;">
+
+      <table id="reagentTable">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th>名称</th>
+            <th>厂家</th>
+            <th>规格</th>
+            <th>使用说明</th>
+            <th>生产日期</th>
+            <th>到期日期</th>
+            <th>照片</th>
+            <th>存放地点</th> <!-- ⭐ 新增列 -->
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- 3. 项目组管理主页面 -->
+    <div id="group" class="page page-card">
+      <h1 class="page-title">项目组管理</h1>
+      <div class="group-container">
+        <div class="group-box" onclick="openProjectGroup('ABUS')">ABUS</div>
+        <div class="group-box" onclick="openProjectGroup('CVUS')">CVUS</div>
+        <div class="group-box" onclick="openProjectGroup('POC')">POC</div>
+        <div class="group-box" onclick="openProjectGroup('PC')">PC</div>
+      </div>
+    </div>
+
+    <!-- 4. 项目组表格页面 -->
+    <div id="projectGroupTablePage" class="page page-card">
+      <h2 id="projectGroupTitle" class="page-title"></h2>
+
+      <button class="btn" onclick="addGroupRow()">新增行</button>
+
+      <table id="projectGroupTable" style="margin-top:20px;">
+        <thead>
+          <tr id="projectGroupHeaderRow">
+            <th>序号</th>
+            <th>名称</th>
+            <th>厂商</th>
+            <th>数量</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- 5. 停产试剂 -->
+    <div id="discontinued" class="page page-card">
+      <h1 class="page-title">停产试剂</h1>
+
+      <button class="btn" onclick="addDiscontinuedRow()">新增行</button>
+
+      <table id="disTable">
+        <thead>
+          <tr id="disHeaderRow">
+            <th>序号</th>
+            <th>化学试剂名称</th>
+            <th>厂商</th>
+            <th>evidence</th>
+            <th>停产日期</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- 6. 变更历史 -->
+    <div id="history" class="page page-card">
+      <h1 class="page-title">变更历史</h1>
+
+      <button class="btn" onclick="addHistoryRow()">新增行</button>
+
+      <table id="hisTable">
+        <thead>
+          <tr id="hisHeaderRow">
+            <th>序号</th>
+            <th>变更历史</th>
+            <th>编辑者</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- 化学试剂行菜单 -->
+  <div id="rowMenu"
+    style="position:absolute;display:none;background:#333;color:#fff;padding:6px 10px;border-radius:4px;z-index:9999;">
+    <div style="cursor:pointer;" onclick="deleteRowById()">删除此行</div>
+  </div>
+
+  <!-- 停产试剂行菜单 -->
+  <div id="disRowMenu"
+    style="position:absolute;display:none;background:#333;color:#fff;padding:6px 10px;border-radius:4px;z-index:9999;">
+    <div style="cursor:pointer;" onclick="deleteDisRowById()">删除此行</div>
+  </div>
+
+  <!-- 项目组行菜单 -->
+  <div id="groupRowMenu"
+    style="position:absolute;display:none;background:#333;color:#fff;padding:6px 10px;border-radius:4px;z-index:9999;">
+    <div style="cursor:pointer;" onclick="deleteGroupRowByMenu()">删除此行</div>
+  </div>
+
+  <!-- 变更历史行菜单 -->
+  <div id="hisRowMenu"
+    style="position:absolute;display:none;background:#333;color:#fff;padding:6px 10px;border-radius:4px;z-index:9999;">
+    <div style="cursor:pointer;" onclick="deleteHisRowById()">删除此行</div>
+  </div>
+
+  <!-- 图片预览层 -->
+  <div id="imgPreviewOverlay">
+    <img id="imgPreview" />
+  </div>
+
+  <script type="module">
+    /* ---------------- Firebase 初始化 ---------------- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+      set,
+      update,
+      remove
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCMQ1NcIcR-lbBX3xVRTEg_uAATp7SJ3o4",
+      authDomain: "chem-inventory-39b3f.firebaseapp.com",
+      databaseURL: "https://chem-inventory-39b3f-default-rtdb.firebaseio.com",
+      projectId: "chem-inventory-39b3f",
+      storageBucket: "chem-inventory-39b3f.appspot.com",
+      messagingSenderId: "285037545391",
+      appId: "1:285037545391:web:f4b29e884e065da274915a",
+      measurementId: "G-RVJPNXF6MF"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    /* ---------------- Firebase 封装 ---------------- */
+    async function readData(path) {
+      const snapshot = await get(ref(db, path));
+      return snapshot.exists() ? snapshot.val() : null;
+    }
+    async function writeData(path, data) { await set(ref(db, path), data); }
+    async function updateData(path, data) { await update(ref(db, path), data); }
+    async function deleteData(path) { await remove(ref(db, path)); }
+
+    /* ---------------- 数据路径 ---------------- */
+    const PATH = {
+      reagents: "Reagents",
+      groups: "Groups",
+      discontinued: "Discontinued",
+      history: "History"
+    };
+
+    /* ---------------- 页面切换 ---------------- */
+    function showPage(id, el) {
+      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+      const page = document.getElementById(id);
+      if (page) page.classList.add("active");
+
+      document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+      if (el) el.classList.add("active");
+    }
+
+    /* ---------------- 大图预览 ---------------- */
+    function previewImage(url) {
+      const overlay = document.getElementById("imgPreviewOverlay");
+      const img = document.getElementById("imgPreview");
+      img.src = url;
+      overlay.style.display = "flex";
+      overlay.onclick = () => overlay.style.display = "none";
+    }
+
+    /* ---------------- 通用列宽拖拽 ---------------- */
+    function enableTableColumnResize(tableSelector) {
+      const ths = document.querySelectorAll(`${tableSelector} thead th`);
+
+      ths.forEach((th, index) => {
+        if (th.querySelector(".col-resizer")) return;
+
+        const resizer = document.createElement("div");
+        resizer.className = "col-resizer";
+        th.style.position = "relative";
+        th.appendChild(resizer);
+
+        let startX, startWidth;
+
+        resizer.addEventListener("mousedown", (e) => {
+          startX = e.pageX;
+          startWidth = th.offsetWidth;
+
+          document.addEventListener("mousemove", onMouseMove);
+          document.addEventListener("mouseup", onMouseUp);
+        });
+
+        function onMouseMove(e) {
+          const newWidth = startWidth + (e.pageX - startX);
+          th.style.width = newWidth + "px";
+
+          document.querySelectorAll(`${tableSelector} tbody tr`).forEach(tr => {
+            if (tr.children[index]) {
+              tr.children[index].style.width = newWidth + "px";
+            }
+          });
+        }
+
+        function onMouseUp() {
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", onMouseUp);
+        }
+      });
+    }
+
+    /* ---------------- 行高拖拽（稳定版） ---------------- */
+    function enableStableRowResize(tableSelector) {
+      const table = document.querySelector(tableSelector);
+      if (!table) return;
+
+      const tbody = table.querySelector("tbody");
+      if (!tbody) return;
+
+      const trs = tbody.querySelectorAll("tr");
+
+      trs.forEach(tr => {
+        if (tr.dataset.hasRowResizer) return;
+        tr.dataset.hasRowResizer = "1";
+
+        tr.style.position = "relative";
+
+        const resizer = document.createElement("div");
+        resizer.className = "row-resizer";
+        resizer.style.position = "absolute";
+        resizer.style.left = tr.offsetLeft + "px";
+        resizer.style.width = tr.offsetWidth + "px";
+        resizer.style.top = (tr.offsetTop + tr.offsetHeight - 6) + "px";
+        resizer.style.height = "6px";
+        resizer.style.cursor = "ns-resize";
+        resizer.style.background = "transparent";
+        resizer.style.zIndex = "999";
+
+        tbody.appendChild(resizer);
+
+        let startY = 0;
+        let startHeight = 0;
+
+        resizer.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          startY = e.clientY;
+          startHeight = tr.offsetHeight;
+
+          document.addEventListener("mousemove", onMouseMove);
+          document.addEventListener("mouseup", onMouseUp);
+        });
+
+        function onMouseMove(e) {
+          const delta = e.clientY - startY;
+          const newHeight = Math.max(24, startHeight + delta);
+          tr.style.height = newHeight + "px";
+          resizer.style.top = (tr.offsetTop + newHeight - 6) + "px";
+        }
+
+        function onMouseUp() {
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", onMouseUp);
+        }
+      });
+    }
+
+    /* ---------------- 到期时间解析 ---------------- */
+    function parseExpireDate(str) {
+      if (!str) return null;
+      if (str.trim().toUpperCase() === "NA") return null;
+
+      str = str.replace(/过期|到期|时间|：|:|\(|\)|（|）/g, "")
+        .replace(/\s+/g, "")
+        .trim();
+
+      if (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(str)) {
+        const y = str.match(/(\d{4})年/)[1];
+        const m = str.match(/(\d{1,2})月/)[1];
+        const d = str.match(/(\d{1,2})日/)[1];
+        return new Date(`${y}-${m}-${d}`);
+      }
+
+      if (/^\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}$/.test(str)) {
+        return new Date(str.replace(/[\/.]/g, "-"));
+      }
+
+      if (!isNaN(Date.parse(str))) {
+        return new Date(str);
+      }
+
+      return null;
+    }
+
+    /* ---------------- 化学试剂统计 ---------------- */
+    async function updateStats() {
+      const data = await readData(PATH.reagents);
+      if (!data) {
+        document.getElementById("totalCount").textContent = 0;
+        document.getElementById("nearExpireCount").textContent = 0;
+        document.getElementById("expiredCount").textContent = 0;
+        document.getElementById("nearExpireList").innerHTML = "";
+        document.getElementById("expiredList").innerHTML = "";
+        return;
+      }
+
+      let total = 0;
+      let nearExpire = 0;
+      let expired = 0;
+
+      const nearExpireList = [];
+      const expiredList = [];
+
+      const now = new Date();
+      const threeMonths = 90;
+
+      Object.values(data).forEach(row => {
+        total++;
+
+        const name = row.col1 ?? "(未命名)";
+        const expireDateStr = row.col6;
+        if (!expireDateStr) return;
+
+        const expireDate = parseExpireDate(expireDateStr);
+        if (!expireDate) return;
+
+        const diffDays = (expireDate - now) / (1000 * 60 * 60 * 24);
+
+        if (diffDays < 0) {
+          expired++;
+          expiredList.push(`${name}（${expireDateStr}）`);
+        } else if (diffDays <= threeMonths) {
+          nearExpire++;
+          nearExpireList.push(`${name}（${expireDateStr}）`);
+        }
+      });
+
+      document.getElementById("totalCount").textContent = total;
+      document.getElementById("nearExpireCount").textContent = nearExpire;
+      document.getElementById("expiredCount").textContent = expired;
+
+      const nearList = document.getElementById("nearExpireList");
+      const expList = document.getElementById("expiredList");
+
+      nearList.innerHTML = "";
+      expList.innerHTML = "";
+
+      nearExpireList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        nearList.appendChild(li);
+      });
+
+      expiredList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        expList.appendChild(li);
+      });
+    }
+
+    /* ---------------- 试剂管理 ---------------- */
+    let currentRowId = null;
+
+    async function loadReagents() {
+      const data = await readData(PATH.reagents);
+      const tbody = document.querySelector("#reagentTable tbody");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+
+      const headers = [
+        "col0", "col1", "col2", "col3", "col4",
+        "col5", "col6", "col7", "col8", "col9"
+      ];
+
+      if (!data) {
+        updateStats();
+        enableTableColumnResize("#reagentTable");
+        enableStableRowResize("#reagentTable");
+        return;
+      }
+
+      Object.keys(data).forEach((id, rowIndex) => {
+        const row = data[id];
+        const tr = document.createElement("tr");
+        tr.dataset.id = id;
+
+        headers.forEach((key, index) => {
+          const td = document.createElement("td");
+
+          if (index === 0) {
+            td.contentEditable = false;
+            td.textContent = rowIndex + 1;
+
+            const spanMenu = document.createElement("span");
+            spanMenu.textContent = "▼";
+            spanMenu.className = "row-menu-btn";
+            spanMenu.style.marginLeft = "8px";
+            spanMenu.onclick = (e) => openRowMenu(e, id);
+            td.appendChild(spanMenu);
+          }
+
+          else if (index === 7) {
+            const btn = document.createElement("button");
+            btn.textContent = "上传";
+            btn.className = "btn";
+            btn.onclick = () => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "*/*";
+              input.onchange = (e) => uploadPhoto(id, e.target.files[0]);
+              input.click();
+            };
+            td.appendChild(btn);
+
+            const val = row[key];
+            if (val) {
+              if (val.startsWith("data:image")) {
+                const img = document.createElement("img");
+                img.src = val;
+                img.width = 60;
+                img.style.marginLeft = "8px";
+                img.style.cursor = "pointer";
+                img.onclick = () => previewImage(val);
+                td.appendChild(img);
+              } else {
+                const link = document.createElement("a");
+                link.href = val;
+                link.textContent = "附件";
+                link.download = row.filename || "附件";
+                link.style.marginLeft = "8px";
+                td.appendChild(link);
+              }
+
+              const delBtn = document.createElement("button");
+              delBtn.textContent = "删除";
+              delBtn.style.marginLeft = "8px";
+              delBtn.onclick = () => deletePhoto(id);
+              td.appendChild(delBtn);
+            }
+          }
+
+          else {
+            td.contentEditable = true;
+            td.textContent = row[key] ?? "";
+            td.oninput = () => saveReagentRow(id);
+          }
+
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      updateStats();
+      enableTableColumnResize("#reagentTable");
+      enableStableRowResize("#reagentTable");
+    }
+
+    async function saveReagentRow(id) {
+      const tr = document.querySelector(`#reagentTable tbody tr[data-id="${id}"]`);
+      if (!tr) return;
+
+      const tds = tr.querySelectorAll("td");
+      const rowData = {};
+
+      tds.forEach((td, index) => {
+        if (index === 0 || index === 7) return;
+        rowData[`col${index}`] = td.textContent.trim();
+      });
+
+      await updateData(`${PATH.reagents}/${id}`, rowData);
+    }
+
+    async function addReagentRow() {
+      const id = Date.now();
+      const rowData = {};
+
+      for (let i = 0; i < 10; i++) {
+        rowData[`col${i}`] = "";
+      }
+
+      await writeData(`${PATH.reagents}/${id}`, rowData);
+      await loadReagents();
+    }
+
+    async function deleteReagent(id) {
+      await deleteData(`${PATH.reagents}/${id}`);
+      await loadReagents();
+    }
+
+    async function uploadPhoto(id, file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        const base64 = e.target.result;
+        await updateData(`${PATH.reagents}/${id}`, {
+          col7: base64,
+          filename: file.name
+        });
+        await loadReagents();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function deletePhoto(id) {
+      await updateData(`${PATH.reagents}/${id}`, {
+        col7: "",
+        filename: ""
+      });
+      await loadReagents();
+    }
+
+    function openRowMenu(event, rowId) {
+      currentRowId = rowId;
+      const menu = document.getElementById("rowMenu");
+      menu.style.display = "block";
+      menu.style.left = event.pageX + "px";
+      menu.style.top = event.pageY + "px";
+    }
+
+    async function deleteRowById() {
+      if (!currentRowId) return;
+      await deleteData(`${PATH.reagents}/${currentRowId}`);
+      document.getElementById("rowMenu").style.display = "none";
+      currentRowId = null;
+      await loadReagents();
+    }
+
+    document.addEventListener("click", function (e) {
+      const rowMenu = document.getElementById("rowMenu");
+      if (rowMenu && !rowMenu.contains(e.target) && !e.target.classList.contains("row-menu-btn")) {
+        rowMenu.style.display = "none";
+      }
+    });
+
+    const searchInput = document.getElementById("searchBox");
+    if (searchInput) {
+      searchInput.oninput = function () {
+        const keyword = this.value.trim().toLowerCase();
+        const trs = document.querySelectorAll("#reagentTable tbody tr");
+        trs.forEach(tr => {
+          const text = tr.textContent.toLowerCase();
+          tr.style.display = text.includes(keyword) ? "" : "none";
+        });
+      };
+    }
+
+    document.addEventListener("paste", function (e) {
+      const active = document.activeElement;
+      if (!active || active.tagName !== "TD" || !active.closest("#reagentTable")) return;
+
+      e.preventDefault();
+
+      const text = (e.clipboardData || window.clipboardData).getData("text");
+      const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
+
+      let startRow = active.parentElement.rowIndex - 1;
+      let startCol = active.cellIndex;
+
+      rows.forEach((rowText, rIndex) => {
+        const cols = rowText.split(/\t/);
+        const tr = document.querySelector(`#reagentTable tbody tr:nth-child(${startRow + rIndex + 1})`);
+        if (!tr) return;
+
+        cols.forEach((colText, cIndex) => {
+          const td = tr.children[startCol + cIndex];
+          if (!td) return;
+          td.textContent = colText;
+          const id = tr.dataset.id;
+          saveReagentRow(id);
+        });
+      });
+    });
+
+    /* ---------------- 停产试剂 ---------------- */
+    const DIS_HEADERS = [
+      "序号",
+      "化学试剂名称",
+      "厂商",
+      "evidence",
+      "停产日期",
+      "备注"
+    ];
+
+    async function loadDiscontinued() {
+      const data = await readData(PATH.discontinued);
+      const tbody = document.querySelector("#disTable tbody");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+      if (!data) {
+        enableTableColumnResize("#disTable");
+        enableStableRowResize("#disTable");
+        return;
+      }
+
+      Object.keys(data).forEach((id, rowIndex) => {
+        const row = data[id];
+        const tr = document.createElement("tr");
+        tr.dataset.id = id;
+
+        DIS_HEADERS.forEach((header, index) => {
+          const td = document.createElement("td");
+
+          if (index === 0) {
+            td.contentEditable = false;
+            td.textContent = rowIndex + 1;
+
+            const spanMenu = document.createElement("span");
+            spanMenu.textContent = "▼";
+            spanMenu.className = "row-menu-btn";
+            spanMenu.style.marginLeft = "8px";
+            spanMenu.onclick = (e) => openDisRowMenu(e, id);
+            td.appendChild(spanMenu);
+          }
+
+          else if (index === 3) {
+            const btn = document.createElement("button");
+            btn.textContent = "上传";
+            btn.className = "btn";
+            btn.onclick = () => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "*/*";
+              input.onchange = (e) => uploadEvidence(id, e.target.files[0]);
+              input.click();
+            };
+            td.appendChild(btn);
+
+            const val = row[`col${index}`];
+            if (val) {
+              const link = document.createElement("a");
+              link.href = val;
+              link.textContent = row.filename || "下载文件";
+              link.download = row.filename || "evidence";
+              link.style.marginLeft = "8px";
+              td.appendChild(link);
+
+              const delBtn = document.createElement("button");
+              delBtn.textContent = "删除";
+              delBtn.style.marginLeft = "8px";
+              delBtn.onclick = () => deleteEvidence(id);
+              td.appendChild(delBtn);
+            }
+          }
+
+          else {
+            td.contentEditable = true;
+            td.textContent = row[`col${index}`] ?? "";
+            td.oninput = () => saveDiscontinuedRow(id);
+          }
+
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      enableTableColumnResize("#disTable");
+      enableStableRowResize("#disTable");
+    }
+
+    async function saveDiscontinuedRow(id) {
+      const tr = document.querySelector(`#disTable tbody tr[data-id="${id}"]`);
+      if (!tr) return;
+
+      const tds = tr.querySelectorAll("td");
+      const rowData = {};
+
+      for (let i = 1; i < DIS_HEADERS.length; i++) {
+        if (i === 3) continue;
+        rowData[`col${i}`] = tds[i].textContent.trim();
+      }
+
+      const old = await readData(`${PATH.discontinued}/${id}`);
+      if (old && old.col3) rowData.col3 = old.col3;
+      if (old && old.filename) rowData.filename = old.filename;
+
+      await updateData(`${PATH.discontinued}/${id}`, rowData);
+    }
+
+    async function addDiscontinuedRow() {
+      const id = Date.now();
+      const rowData = {};
+
+      for (let i = 1; i < DIS_HEADERS.length; i++) {
+        rowData[`col${i}`] = "";
+      }
+
+      await writeData(`${PATH.discontinued}/${id}`, rowData);
+      await loadDiscontinued();
+    }
+
+    async function uploadEvidence(id, file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        const base64 = e.target.result;
+        await updateData(`${PATH.discontinued}/${id}`, {
+          col3: base64,
+          filename: file.name
+        });
+        await loadDiscontinued();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function deleteEvidence(id) {
+      await updateData(`${PATH.discontinued}/${id}`, {
+        col3: "",
+        filename: ""
+      });
+      await loadDiscontinued();
+    }
+
+    function openDisRowMenu(event, id) {
+      event.stopPropagation();
+      const menu = document.getElementById("disRowMenu");
+      menu.style.display = "block";
+      menu.style.left = event.pageX + "px";
+      menu.style.top = event.pageY + "px";
+      menu.dataset.id = id;
+    }
+
+    async function deleteDisRowById() {
+      const menu = document.getElementById("disRowMenu");
+      const id = menu.dataset.id;   // ⭐ 关键：读取行 ID
+      if (!id) return;
+
+      await deleteData(`${PATH.discontinued}/${id}`);
+      menu.style.display = "none";
+      await loadDiscontinued();
+    }
+
+    document.addEventListener("click", () => {
+      const rowMenu = document.getElementById("disRowMenu");
+      if (rowMenu) rowMenu.style.display = "none";
+    });
+
+    /* ---------------- 项目组模块 ---------------- */
+    let currentGroup = "";
+    let groupColumns = ["序号", "名称", "厂商", "数量", "备注"];
+    let currentGroupRowId = null;
+
+    function initGroupColumnsFromHeader() {
+      const ths = document.querySelectorAll("#projectGroupHeaderRow th");
+      groupColumns = Array.from(ths).map(th => th.textContent.trim());
+    }
+
+    function getGroupHeaders() {
+      return groupColumns.slice();
+    }
+
+    function openProjectGroup(groupName) {
+      currentGroup = groupName;
+      const title = document.getElementById("projectGroupTitle");
+      title.textContent = groupName + " 项目组";
+
+      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+      document.getElementById("projectGroupTablePage").classList.add("active");
+
+      initGroupColumnsFromHeader();
+      loadGroup(groupName);
+    }
+
+    async function loadGroup(groupName) {
+      const data = await readData(`${PATH.groups}/${groupName}`);
+      const tbody = document.querySelector("#projectGroupTable tbody");
+      tbody.innerHTML = "";
+
+      if (!data) {
+        enableTableColumnResize("#projectGroupTable");
+        enableStableRowResize("#projectGroupTable");
+        return;
+      }
+
+      const headers = getGroupHeaders();
+
+      Object.keys(data).forEach((id, rowIndex) => {
+        const row = data[id];
+        const tr = document.createElement("tr");
+        tr.dataset.id = id;
+
+        headers.forEach((header, index) => {
+          const td = document.createElement("td");
+
+          if (index === 0) {
+            td.contentEditable = false;
+            td.textContent = rowIndex + 1;
+
+            const spanMenu = document.createElement("span");
+            spanMenu.textContent = "▼";
+            spanMenu.className = "row-menu-btn";
+            spanMenu.style.marginLeft = "8px";
+            spanMenu.onclick = (e) => openGroupRowMenu(e, id);
+            td.appendChild(spanMenu);
+          }
+
+          else {
+            td.contentEditable = true;
+            td.textContent = row[header] ?? "";
+            td.oninput = () => saveGroupRow(groupName, id);
+          }
+
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      enableTableColumnResize("#projectGroupTable");
+      enableStableRowResize("#projectGroupTable");
+    }
+
+    async function saveGroupRow(groupName, id) {
+      const tr = document.querySelector(`#projectGroupTable tbody tr[data-id="${id}"]`);
+      const tds = tr.querySelectorAll("td");
+      const headers = getGroupHeaders();
+      const rowData = {};
+
+      tds.forEach((td, index) => {
+        if (index === 0) return;
+        rowData[headers[index]] = td.textContent.trim();
+      });
+
+      await updateData(`${PATH.groups}/${groupName}/${id}`, rowData);
+    }
+
+    async function addGroupRow() {
+      if (!currentGroup) return;
+
+      const id = "id" + Date.now();
+      const headers = getGroupHeaders();
+      const rowData = {};
+
+      headers.forEach(header => {
+        if (header !== "序号") rowData[header] = "";
+      });
+
+      await writeData(`${PATH.groups}/${currentGroup}/${id}`, rowData);
+      await loadGroup(currentGroup);
+    }
+
+    function openGroupRowMenu(event, id) {
+      event.stopPropagation();
+      currentGroupRowId = id;
+
+      const menu = document.getElementById("groupRowMenu");
+      menu.style.display = "block";
+      menu.style.left = event.pageX + "px";
+      menu.style.top = event.pageY + "px";
+    }
+
+    async function deleteGroupRowByMenu() {
+      await deleteData(`${PATH.groups}/${currentGroup}/${currentGroupRowId}`);
+      currentGroupRowId = null;
+      document.getElementById("groupRowMenu").style.display = "none";
+      await loadGroup(currentGroup);
+    }
+
+    document.addEventListener("click", function (e) {
+      const rowMenu = document.getElementById("groupRowMenu");
+      if (rowMenu && !rowMenu.contains(e.target) && !e.target.classList.contains("row-menu-btn")) {
+        rowMenu.style.display = "none";
+        currentGroupRowId = null;
+      }
+    });
+
+    /* ---------------- 变更历史 ---------------- */
+    let currentHisRowId = null;
+
+    function getHisHeaderCount() {
+      return document.querySelector("#hisHeaderRow").children.length;
+    }
+
+    async function loadHistory() {
+      const data = await readData(PATH.history);
+      const tbody = document.querySelector("#hisTable tbody");
+      tbody.innerHTML = "";
+
+      if (!data) {
+        enableStableRowResize("#hisTable");
+        return;
+      }
+
+      const ids = Object.keys(data);
+      const colCount = getHisHeaderCount();
+
+      ids.forEach((id, index) => {
+        const row = data[id];
+        const tr = document.createElement("tr");
+        tr.dataset.id = id;
+
+        for (let colIndex = 0; colIndex < colCount; colIndex++) {
+          const td = document.createElement("td");
+
+          if (colIndex === 0) {
+            td.textContent = index + 1;
+            td.contentEditable = false;
+
+            const spanMenu = document.createElement("span");
+            spanMenu.textContent = "▼";
+            spanMenu.className = "row-menu-btn";
+            spanMenu.style.marginLeft = "8px";
+            spanMenu.onclick = (e) => openHisRowMenu(e, id);
+            td.appendChild(spanMenu);
+          }
+
+          else {
+            td.contentEditable = true;
+            td.textContent = row[`col${colIndex}`] ?? "";
+            td.oninput = () => saveHistoryRow(id);
+          }
+
+          tr.appendChild(td);
+        }
+
+        tbody.appendChild(tr);
+      });
+
+      enableTableColumnResize("#hisTable");
+      enableStableRowResize("#hisTable");
+    }
+
+    async function saveHistoryRow(id) {
+      const tr = document.querySelector(`#hisTable tbody tr[data-id="${id}"]`);
+      if (!tr) return;
+
+      const tds = tr.children;
+      const colCount = getHisHeaderCount();
+      const rowData = {};
+
+      for (let colIndex = 1; colIndex < colCount; colIndex++) {
+        rowData[`col${colIndex}`] = tds[colIndex].textContent.trim();
+      }
+
+      await updateData(`${PATH.history}/${id}`, rowData);
+    }
+
+    async function addHistoryRow() {
+      const id = Date.now();
+      const colCount = getHisHeaderCount();
+      const rowData = {};
+
+      for (let colIndex = 1; colIndex < colCount; colIndex++) {
+        rowData[`col${colIndex}`] = "";
+      }
+
+      await writeData(`${PATH.history}/${id}`, rowData);
+      await loadHistory();
+    }
+
+    function openHisRowMenu(event, id) {
+      event.stopPropagation();
+      currentHisRowId = id;
+
+      const menu = document.getElementById("hisRowMenu");
+      menu.style.display = "block";
+      menu.style.left = event.pageX + "px";
+      menu.style.top = event.pageY + "px";
+    }
+
+    async function deleteHisRowById() {
+      if (!currentHisRowId) return;
+      await deleteData(`${PATH.history}/${currentHisRowId}`);
+      currentHisRowId = null;
+      document.getElementById("hisRowMenu").style.display = "none";
+      await loadHistory();
+    }
+
+    document.addEventListener("click", function (e) {
+      const rowMenu = document.getElementById("hisRowMenu");
+      if (rowMenu && !rowMenu.contains(e.target) && !e.target.classList.contains("row-menu-btn")) {
+        rowMenu.style.display = "none";
+      }
+    });
+
+    /* ---------------- 页面加载 ---------------- */
+    async function reloadAll() {
+      await loadReagents();
+      await loadDiscontinued();
+      await loadHistory();
+      updateStats();
+    }
+
+    reloadAll();
+
+    /* ---------------- window 暴露 ---------------- */
+    window.showPage = showPage;
+
+    window.addReagentRow = addReagentRow;
+    window.openRowMenu = openRowMenu;
+    window.deleteRowById = deleteRowById;
+
+    window.openProjectGroup = openProjectGroup;
+    window.loadGroup = loadGroup;
+    window.saveGroupRow = saveGroupRow;
+    window.addGroupRow = addGroupRow;
+    window.openGroupRowMenu = openGroupRowMenu;
+    window.deleteGroupRowByMenu = deleteGroupRowByMenu;
+
+    window.addDiscontinuedRow = addDiscontinuedRow;
+    window.loadDiscontinued = loadDiscontinued;
+    window.openDisRowMenu = openDisRowMenu;
+    window.deleteDisRowById = deleteDisRowById;
+
+    window.loadHistory = loadHistory;
+    window.addHistoryRow = addHistoryRow;
+    window.openHisRowMenu = openHisRowMenu;
+    window.deleteHisRowById = deleteHisRowById;
+
+    window.enableStableRowResize = enableStableRowResize;
+    window.enableTableColumnResize = enableTableColumnResize;
+
+    window.PATH = PATH;
+    window.readData = readData;
+    window.updateData = updateData;
+    window.writeData = writeData;
+    window.deleteData = deleteData;
+  </script>
+</body>
+
+</html>
