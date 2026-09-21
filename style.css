@@ -213,3 +213,7 @@ td {
   cursor: ns-resize;
   background: transparent;
 }
+
+#disTable td, #disTable th {
+  font-size: 14px !important;
+}
