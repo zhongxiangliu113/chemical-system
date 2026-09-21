@@ -905,7 +905,7 @@ async function loadGroup(groupName) {
 
       if (index === 0) {
         td.contentEditable = false;
-        td.textContent = rowIndex;
+        td.textContent = rowIndex + 1;
 
         const spanMenu = document.createElement("span");
         spanMenu.textContent = "▼";
@@ -1069,18 +1069,20 @@ function getHisHeaderCount() {
 
 async function loadHistory() {
   let colCount = await readData(PATH.historyColCount);
+
+  // 如果数据库没有列数量，则用当前表头数量并写入数据库
   if (!colCount || typeof colCount !== "number") {
     colCount = getHisHeaderCount();
     await updateData(PATH.historyColCount, colCount);
-  } else {
-    const theadRow = document.getElementById("hisHeaderRow");
-    const currentCount = theadRow.children.length;
-    while (currentCount < colCount) {
-      const th = document.createElement("th");
-      th.innerHTML = `新列 <span class="col-menu-btn">▼</span>`;
-      th.querySelector(".col-menu-btn").onclick = (e) => openHisColumnMenu(e, th);
-      theadRow.appendChild(th);
-    }
+  }
+
+  // 如果数据库列数量 > 当前表头数量，则补齐表头
+  const theadRow = document.getElementById("hisHeaderRow");
+  while (theadRow.children.length < colCount) {
+    const th = document.createElement("th");
+    th.innerHTML = `新列 <span class="col-menu-btn">▼</span>`;
+    th.querySelector(".col-menu-btn").onclick = (e) => openHisColumnMenu(e, th);
+    theadRow.appendChild(th);
   }
 
   const data = await readData(PATH.history);
@@ -1143,7 +1145,7 @@ async function saveHistoryRow(id) {
 
 async function addHistoryRow() {
   const id = Date.now();
-  const colCount = getHisHeaderCount();
+  const colCount = await readData(PATH.historyColCount);
   const rowData = {};
 
   for (let colIndex = 1; colIndex < colCount; colIndex++) {
@@ -1212,14 +1214,12 @@ async function deleteHisColumnByIndex() {
 
   await loadHistory();
 }
-
 async function addHistoryColumn() {
   const theadRow = document.getElementById("hisHeaderRow");
   const colName = prompt("请输入新列名称：");
   if (!colName) return;
 
   const th = document.createElement("th");
-  th.draggable = true;
   th.innerHTML = `${colName} <span class="col-menu-btn">▼</span>`;
   th.querySelector(".col-menu-btn").onclick = (e) => openHisColumnMenu(e, th);
   theadRow.appendChild(th);
@@ -1241,9 +1241,12 @@ async function addHistoryColumn() {
     });
   }
 
+  // ⭐ 关键：写入数据库，让所有用户同步列数量
   await updateData(PATH.historyColCount, getHisHeaderCount());
+
   await loadHistory();
 }
+
 
 /* ---------------- 全局菜单关闭 ---------------- */
 document.addEventListener("click", function (e) {
